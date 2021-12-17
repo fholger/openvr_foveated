@@ -65,6 +65,12 @@ set(NIS_FILES
 	nis/NIS_Upscale.hlsl
 	nis/NIS_Sharpen.hlsl
 )
+set(RDM_FILES
+	rdm/fullscreen_tri.vert.hlsl
+	rdm/radial_density_mask.frag.hlsl
+	rdm/reconstruction.compute.hlsl
+)
+
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
 	set(MINHOOK_HDE minhook/src/hde/hde64.c)
 else()
@@ -84,6 +90,7 @@ set(SOURCE_FILES
 	${POSTPROCESS_FILES}
 	${FSR_FILES}
 	${NIS_FILES}
+	${RDM_FILES}
 	${MINHOOK_FILES}
 )
 
@@ -111,6 +118,10 @@ source_group("FSR" FILES
 
 source_group("NIS" FILES
 	${NIS_FILES}
+)
+
+source_group("RDM" FILES
+	${RDM_FILES}
 )
 
 source_group("MinHook" FILES
@@ -166,6 +177,18 @@ set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_TYPE Compute)
 set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_MODEL "5.0")
 set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_nis_sharpen.h")
 set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_NISSharpenShader")
+set_property(SOURCE rdm/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_TYPE Vertex)
+set_property(SOURCE rdm/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_MODEL "5.0")
+set_property(SOURCE rdm/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_rdm_fullscreen_tri.h")
+set_property(SOURCE rdm/fullscreen_tri.vert.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_RDMFullscreenTriShader")
+set_property(SOURCE rdm/radial_density_mask.frag.hlsl PROPERTY VS_SHADER_TYPE Pixel)
+set_property(SOURCE rdm/radial_density_mask.frag.hlsl PROPERTY VS_SHADER_MODEL "5.0")
+set_property(SOURCE rdm/radial_density_mask.frag.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_rdm_mask.h")
+set_property(SOURCE rdm/radial_density_mask.frag.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_RDMMaskShader")
+set_property(SOURCE rdm/reconstruction.compute.hlsl PROPERTY VS_SHADER_TYPE Compute)
+set_property(SOURCE rdm/reconstruction.compute.hlsl PROPERTY VS_SHADER_MODEL "5.0")
+set_property(SOURCE rdm/reconstruction.compute.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_rdm_reconstruction.h")
+set_property(SOURCE rdm/reconstruction.compute.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_RDMReconstructShader")
 
 target_link_libraries(${LIBNAME} ${EXTRA_LIBS} ${CMAKE_DL_LIBS})
 target_include_directories(${LIBNAME} PUBLIC ${OPENVR_HEADER_DIR})
