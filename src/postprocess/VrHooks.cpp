@@ -40,11 +40,6 @@ namespace {
 		if (pnWidth == nullptr || pnHeight == nullptr) {
 			return;
 		}
-
-		if (Config::Instance().fsrEnabled && Config::Instance().renderScale < 1) {
-			*pnWidth *= Config::Instance().renderScale;
-			*pnHeight *= Config::Instance().renderScale;
-		}
 	}
 
 	vr::EVRCompositorError IVRCompositor_Submit(vr::IVRCompositor *self, vr::EVREye eEye, const vr::Texture_t *pTexture, const vr::VRTextureBounds_t *pBounds, vr::EVRSubmitFlags nSubmitFlags) {

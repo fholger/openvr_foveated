@@ -6,13 +6,11 @@ std::ostream& Log();
 std::string GetDllPath();
 
 struct Config {
-	bool fsrEnabled = false;
-	bool applyMIPBias = true;
-	float renderScale = 1.f;
-	float sharpness = 0.75f;
-	float radius = 0.5f;
+	bool ffrEnabled = false;
 	bool debugMode = false;
-	bool useNis = false;
+	bool useSharpening = false;
+	float sharpness = 0.4f;
+	float sharpenRadius = 0.5f;
 
 	static Config Load() {
 		Config config;
@@ -21,15 +19,16 @@ struct Config {
 			if (configFile.is_open()) {
 				Json::Value root;
 				configFile >> root;
-				Json::Value fsr = root.get("fsr", Json::Value());
-				config.fsrEnabled = fsr.get("enabled", false).asBool();
-				config.sharpness = fsr.get("sharpness", 1.0).asFloat();
+				Json::Value foveated = root.get("foveated", Json::Value());
+				config.ffrEnabled = foveated.get("enabled", false).asBool();
+				config.debugMode = foveated.get("debugMode", false).asBool();
+
+				Json::Value sharpen = foveated.get("sharpen", Json::Value());
+				config.useSharpening = sharpen.get("enabled", false).asBool();
+				config.sharpness = sharpen.get("sharpness", 0.4).asFloat();
 				if (config.sharpness < 0) config.sharpness = 0;
-				config.renderScale = fsr.get("renderScale", 1.0).asFloat();
-				config.applyMIPBias = fsr.get("applyMIPBias", true).asBool();
-				config.radius = fsr.get("radius", 0.5).asFloat();
-				config.debugMode = fsr.get("debugMode", false).asBool();
-				config.useNis = fsr.get("useNIS", false).asBool();
+				if (config.sharpness > 1) config.sharpness = 1;
+				config.sharpenRadius = sharpen.get("radius", 0.5).asFloat();
 			}
 		} catch (...) {
 			Log() << "Could not read config file.\n";

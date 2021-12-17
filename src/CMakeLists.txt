@@ -53,16 +53,9 @@ set(POSTPROCESS_FILES
 	postprocess/PostProcessor.h
 	postprocess/PostProcessor.cpp
 )
-set(FSR_FILES
-	fsr/ffx_a.h
-	fsr/ffx_fsr1.h
-	fsr/fsr_easu.hlsl
-	fsr/fsr_rcas.hlsl
-)
 set(NIS_FILES
 	nis/NIS_Config.h
 	nis/NIS_Scaler.h
-	nis/NIS_Upscale.hlsl
 	nis/NIS_Sharpen.hlsl
 )
 set(RDM_FILES
@@ -88,7 +81,6 @@ set(SOURCE_FILES
 	${CORE_FILES}
 	${VRCOMMON_FILES}
 	${POSTPROCESS_FILES}
-	${FSR_FILES}
 	${NIS_FILES}
 	${RDM_FILES}
 	${MINHOOK_FILES}
@@ -161,18 +153,6 @@ if(USE_CUSTOM_LIBCXX)
 	set(EXTRA_LIBS ${EXTRA_LIBS} c++ c++abi)
 endif()
 
-set_property(SOURCE fsr/fsr_easu.hlsl PROPERTY VS_SHADER_TYPE Compute)
-set_property(SOURCE fsr/fsr_easu.hlsl PROPERTY VS_SHADER_MODEL "5.0")
-set_property(SOURCE fsr/fsr_easu.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_fsr_easu.h")
-set_property(SOURCE fsr/fsr_easu.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_FSRUpscaleShader")
-set_property(SOURCE fsr/fsr_rcas.hlsl PROPERTY VS_SHADER_TYPE Compute)
-set_property(SOURCE fsr/fsr_rcas.hlsl PROPERTY VS_SHADER_MODEL "5.0")
-set_property(SOURCE fsr/fsr_rcas.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_fsr_rcas.h")
-set_property(SOURCE fsr/fsr_rcas.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_FSRSharpenShader")
-set_property(SOURCE nis/NIS_Upscale.hlsl PROPERTY VS_SHADER_TYPE Compute)
-set_property(SOURCE nis/NIS_Upscale.hlsl PROPERTY VS_SHADER_MODEL "5.0")
-set_property(SOURCE nis/NIS_Upscale.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_nis_upscale.h")
-set_property(SOURCE nis/NIS_Upscale.hlsl PROPERTY VS_SHADER_VARIABLE_NAME "g_NISUpscaleShader")
 set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_TYPE Compute)
 set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_MODEL "5.0")
 set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_nis_sharpen.h")
