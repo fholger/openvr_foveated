@@ -80,8 +80,8 @@ void DirectCopy(uint2 blockIdx, uint threadIdx)
 	for (uint k = threadIdx; k < NIS_BLOCK_WIDTH * NIS_BLOCK_HEIGHT; k += NIS_THREAD_GROUP_SIZE)
 	{
 		const int2 pos = int2(k % NIS_BLOCK_WIDTH, k / NIS_BLOCK_WIDTH);
-		const int dstX = dstBlockX + pos.x;
-		const int dstY = dstBlockY + pos.y;
+		const int dstX = dstBlockX + pos.x + kInputViewportOriginX;
+		const int dstY = dstBlockY + pos.y + kInputViewportOriginY;
 		float3 c = in_texture[uint2(dstX, dstY)].rgb;
 		out_texture[uint2(dstX, dstY)] = float4(c, 1) * mul;
 	}

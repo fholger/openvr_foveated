@@ -10,21 +10,22 @@ namespace vr {
 	class PostProcessor {
 	public:
 		void Apply(EVREye eEye, const Texture_t *pTexture, const VRTextureBounds_t* pBounds, EVRSubmitFlags nSubmitFlags);
+		void ApplyFixedFoveatedRendering(ID3D11DepthStencilView *depthStencilView, float depth, uint8_t stencil);
 		void Reset();
 
 	private:
 		bool enabled = true;
 		bool initialized = false;
-		uint32_t inputWidth = 0;
-		uint32_t inputHeight = 0;
-		uint32_t outputWidth = 0;
-		uint32_t outputHeight = 0;
+		uint32_t textureWidth = 0;
+		uint32_t textureHeight = 0;
 		bool textureContainsOnlyOneEye = true;
 		bool requiresCopy = false;
 		bool inputIsSrgb = false;
 		ComPtr<ID3D11Device> device;
 		ComPtr<ID3D11DeviceContext> context;
 		ComPtr<ID3D11SamplerState> sampler;
+		float projX[2];
+		float projY[2];
 
 		struct EyeViews {
 			ComPtr<ID3D11ShaderResourceView> view[2];
@@ -36,6 +37,23 @@ namespace vr {
 
 		void PrepareCopyResources(DXGI_FORMAT format);
 		ID3D11ShaderResourceView *GetInputView(ID3D11Texture2D *inputTexture, int eye);
+
+		// resources for radial density masking
+		ComPtr<ID3D11VertexShader> rdmFullTriVertexShader;
+		ComPtr<ID3D11PixelShader> rdmMaskingShader;
+		ComPtr<ID3D11Buffer> rdmMaskingConstantsBuffer[2];
+		ComPtr<ID3D11ComputeShader> rdmReconstructShader;
+		ComPtr<ID3D11Buffer> rdmReconstructConstantsBuffer[2];
+		ComPtr<ID3D11Texture2D> rdmReconstructedTexture;
+		ComPtr<ID3D11ShaderResourceView> rdmReconstructedView;
+		ComPtr<ID3D11UnorderedAccessView> rdmReconstructedUav;
+		ComPtr<ID3D11DepthStencilState> rdmDepthStencilState;
+		ComPtr<ID3D11RasterizerState> rdmRasterizerState;
+		int depthClearCount = 0;
+
+		void PrepareRdmResources(DXGI_FORMAT format);
+		void ApplyRadialDensityMask(ID3D11DepthStencilView *depthStencilView, uint32_t width, uint32_t height, float depth, uint8_t stencil);
+		void ReconstructRdmRender(vr::EVREye eye, ID3D11ShaderResourceView *inputView, int x, int y, int width, int height);
 
 		// NIS specific lookup textures
 		ComPtr<ID3D11Texture2D> scalerCoeffTexture;
@@ -50,14 +68,14 @@ namespace vr {
 		ComPtr<ID3D11UnorderedAccessView> sharpenedTextureUav;
 
 		void PrepareSharpeningResources(DXGI_FORMAT format);
-		void ApplySharpening(EVREye eEye, ID3D11ShaderResourceView *inputView);
+		void ApplySharpening(EVREye eEye, ID3D11ShaderResourceView *inputView, int x, int y, int width, int height);
 
 		ID3D11Texture2D *lastSubmittedTexture = nullptr;
 		ID3D11Texture2D *outputTexture = nullptr;
 		int eyeCount = 0;
 
 		void PrepareResources(ID3D11Texture2D *inputTexture, EColorSpace colorSpace);
-		void ApplyPostProcess(EVREye eEye, ID3D11Texture2D *inputTexture);
+		void ApplyPostProcess(EVREye eEye, ID3D11Texture2D *inputTexture, const VRTextureBounds_t *bounds);
 
 		struct ProfileQuery {
 			ComPtr<ID3D11Query> queryDisjoint;

@@ -7,6 +7,9 @@ std::string GetDllPath();
 
 struct Config {
 	bool ffrEnabled = false;
+	float innerRadius = 0.3f;
+	float midRadius = 0.75f;
+	float outerRadius = 0.85f;
 	bool debugMode = false;
 	bool useSharpening = false;
 	float sharpness = 0.4f;
@@ -21,6 +24,9 @@ struct Config {
 				configFile >> root;
 				Json::Value foveated = root.get("foveated", Json::Value());
 				config.ffrEnabled = foveated.get("enabled", false).asBool();
+				config.innerRadius = foveated.get("innerRadius", 0.3f).asFloat();
+				config.midRadius = foveated.get("midRadius", 0.75f).asFloat();
+				config.outerRadius = foveated.get("outerRadius", 0.85f).asFloat();
 				config.debugMode = foveated.get("debugMode", false).asBool();
 
 				Json::Value sharpen = foveated.get("sharpen", Json::Value());

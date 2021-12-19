@@ -14,7 +14,6 @@ namespace {
 	bool ivrCompositorHooked = false;
 	ID3D11DeviceContext *hookedContext = nullptr;
 	ID3D11Device *device = nullptr;
-	float mipLodBias;
 
 	vr::PostProcessor postProcessor;
 
@@ -83,51 +82,12 @@ namespace {
 	}
 
 	using Microsoft::WRL::ComPtr;
-	std::unordered_set<ID3D11SamplerState*> passThroughSamplers;
-	std::unordered_map<ID3D11SamplerState*, ComPtr<ID3D11SamplerState>> mappedSamplers;
 
-	void D3D11Context_PSSetSamplers(ID3D11DeviceContext *self, UINT StartSlot, UINT NumSamplers, ID3D11SamplerState * const *ppSamplers) {
-		static ID3D11SamplerState *samplers[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-		for (UINT i = 0; i < NumSamplers; ++i) {
-			ID3D11SamplerState *orig = ppSamplers[i];
-			samplers[i] = orig;
-
-			if (passThroughSamplers.find(orig) != passThroughSamplers.end())
-				continue;
-
-			if (mappedSamplers.find(orig) == mappedSamplers.end()) {
-				Log() << "Creating replacement sampler for " << orig << " with MIP LOD bias " << mipLodBias << std::endl;
-				D3D11_SAMPLER_DESC sd;
-				if (orig != nullptr) {
-					orig->GetDesc(&sd);
-				} else {
-					// create default sampler state
-					sd.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-					sd.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-					sd.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-					sd.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-					sd.MipLODBias = 0;
-					sd.MaxAnisotropy = 1;
-					sd.ComparisonFunc = D3D11_COMPARISON_NEVER;
-					sd.BorderColor[0] = 1.f;
-					sd.BorderColor[1] = 1.f;
-					sd.BorderColor[2] = 1.f;
-					sd.BorderColor[3] = 1.f;
-					sd.MinLOD = -FLT_MAX;
-					sd.MaxLOD = FLT_MAX;
-				}
-				if (sd.MipLODBias == 0 && sd.MaxAnisotropy > 1) {
-					// only apply LOD bias to samplers that don't already have a bias and do anisotropic filtering
-					// this will hopefully reduce the chance of rendering errors due to incorrect biasing
-					sd.MipLODBias += mipLodBias;
-				}
-				device->CreateSamplerState(&sd, mappedSamplers[orig].GetAddressOf());
-				passThroughSamplers.insert(mappedSamplers[orig].Get());
-			}
-
-			samplers[i] = mappedSamplers[orig].Get();
-		}
-		CallOriginal(D3D11Context_PSSetSamplers)(self, StartSlot, NumSamplers, samplers);
+	HRESULT D3D11Context_ClearDepthStencilView(ID3D11DeviceContext *self, ID3D11DepthStencilView *pDepthStencilView, UINT ClearFlags, FLOAT Depth, UINT8 Stencil) {
+		HRESULT ret = CallOriginal(D3D11Context_ClearDepthStencilView)(self, pDepthStencilView, ClearFlags, Depth, Stencil);
+		if (ClearFlags & D3D11_CLEAR_DEPTH)
+			postProcessor.ApplyFixedFoveatedRendering(pDepthStencilView, Depth, Stencil);
+		return ret;
 	}
 }
 
@@ -144,9 +104,6 @@ void ShutdownHooks() {
 	ivrCompositorHooked = false;
 	hookedContext = nullptr;
 	device = nullptr;
-	mipLodBias = 0;
-	passThroughSamplers.clear();
-	mappedSamplers.clear();
 	postProcessor.Reset();
 }
 
@@ -197,14 +154,11 @@ void HookVRInterface(const char *version, void *instance) {
 	}
 }
 
-void HookD3D11Context( ID3D11DeviceContext *context, ID3D11Device *pDevice, float bias ) {
+void HookD3D11Context( ID3D11DeviceContext *context, ID3D11Device *pDevice ) {
 	device = pDevice;
-	mipLodBias = bias;
-	mappedSamplers.clear();
-	passThroughSamplers.clear();
 	if (context != hookedContext) {
-		Log() << "Injecting PSSetSamplers into D3D11DeviceContext" << std::endl;
-		InstallVirtualFunctionHook(context, 10, D3D11Context_PSSetSamplers);
+		Log() << "Injecting ClearDepthStencilView into D3D11DeviceContext" << std::endl;
+		InstallVirtualFunctionHook(context, 53, D3D11Context_ClearDepthStencilView);
 		hookedContext = context;
 	}
 }

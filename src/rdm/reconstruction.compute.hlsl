@@ -2,23 +2,25 @@
  * Adapted from Ogre: https://github.com/OGRECave/ogre-next under the MIT license
  */
 
-// FIXME: AMD/NVIDIA extensions?
-#define anyInvocationARB(value) (value)
-#define imageStore(outImage, iuv, value) outImage[uint2(iuv)] = value
-#define texelFetch(srcImage, iuv, lod) srcImage.Load(int3(iuv, lod))
-#define textureLod(srcTex, uv, lod) srcTex.SampleLevel(bilinearSampler, uv, lod)
-
 Texture2D u_srcTex : register(t0);
 SamplerState bilinearSampler : register(s0);
 
 RWTexture2D<float4> u_dstTex : register(u0);
 
 cbuffer cb : register(b0) {
+	uint2 u_offset;
+	float2 u_projectionCenter;
 	float2 u_invClusterResolution;
 	float2 u_invResolution;
 	float3 u_radius;
 	int u_quality;
 };
+
+// FIXME: AMD/NVIDIA extensions?
+#define anyInvocationARB(value) (value)
+#define imageStore(outImage, iuv, value) outImage[uint2(iuv)] = value
+#define texelFetch(srcImage, iuv, lod) srcImage.Load(int3(iuv, lod))
+#define textureLod(srcTex, uv, lod) srcTex.SampleLevel(bilinearSampler, uv, lod)
 
 /** Takes the pattern (low quality):
 		ab xx ef xx
@@ -220,15 +222,12 @@ void reconstructSixteenthRes( int2 dstUV, uint2 uFragCoordHalf )
 
 [numthreads(8, 8, 1)]
 void main(uint3 globalInvocationID : SV_DispatchThreadID) {
-	uint2 currentUV = uint2(globalInvocationID.xy);
+	uint2 currentUV = uint2(globalInvocationID.xy) + u_offset;
 	uint2 uFragCoordHalf = uint2(currentUV >> 1u);
 
 	//We must work in blocks so the reconstruction filter can work properly
 	float2 truncUV = (currentUV >> 3u) * u_invClusterResolution;
-	float2 eyeCenter = truncUV.x >= 0.5 ? float2(0.7, 0.5) : float2(0.3, 0.5);
-	float2 toCenter = truncUV - eyeCenter;
-	// x must be multiplied by 2 since we have both eyes in the same texture, occupying half of the texture
-	toCenter.x *= 2;
+	float2 toCenter = truncUV - u_projectionCenter;
 	float distToCenter = 2 * length(toCenter);
 
 	//We know for a fact distToCenter is in blocks of 8x8

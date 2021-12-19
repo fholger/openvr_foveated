@@ -4,17 +4,15 @@ struct PSInput {
 };
 
 cbuffer cb : register(b0) {
-	float4 radius;
-	float4 invClusterResolution;
+	float depthOut;
+	float3 radius;
+	float2 invClusterResolution;
+	float2 projectionCenter;
 };
 
 float4 main(PSInput input) : SV_TARGET {
-	float2 eyeCenter = input.uv.x >= 0.5f ? float2(0.7f, 0.5f) : float2(0.3f, 0.5f);
-
 	// working in blocks of 8x8 pixels
-	float2 toCenter = trunc(input.position.xy * 0.125f) * invClusterResolution.xy - eyeCenter;
-	// x must be multiplied by 2 since we have both eyes in the same texture, occupying half of the texture
-	toCenter.x *= 2;
+	float2 toCenter = trunc(input.position.xy * 0.125f) * invClusterResolution.xy - projectionCenter;
 	float distToCenter = length(toCenter) * 2;
 
 	uint2 iFragCoordHalf = uint2( input.position.xy * 0.5f );
