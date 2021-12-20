@@ -36,7 +36,23 @@ namespace vr {
 			return DXGI_FORMAT_R8G8B8A8_UNORM;
 		case DXGI_FORMAT_B8G8R8A8_TYPELESS:
 			return DXGI_FORMAT_B8G8R8A8_UNORM;
+		default:
+			return format;
+		}
+	}
 
+	DXGI_FORMAT TranslateTypelessDepthFormats(DXGI_FORMAT format) {
+		switch (format) {
+		case DXGI_FORMAT_R16_TYPELESS:
+			return DXGI_FORMAT_D16_UNORM;
+		case DXGI_FORMAT_R24G8_TYPELESS:
+		case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+			return DXGI_FORMAT_D24_UNORM_S8_UINT;
+		case DXGI_FORMAT_R32_TYPELESS:
+			return DXGI_FORMAT_D32_FLOAT;
+		case DXGI_FORMAT_R32G8X24_TYPELESS:
+		case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+			return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 		default:
 			return format;
 		}
@@ -184,7 +200,7 @@ namespace vr {
 			return;
 		}
 
-		ApplyRadialDensityMask( depthStencilView, texDesc.Width, texDesc.Height, depth, stencil);
+		ApplyRadialDensityMask( (ID3D11Texture2D*)resource.Get(), depth, stencil);
 	}
 
 	void PostProcessor::Reset() {
@@ -395,14 +411,57 @@ namespace vr {
 		CheckResult("Creating RDM reconstruct constants buffer", device->CreateBuffer( &bd, nullptr, rdmReconstructConstantsBuffer[1].GetAddressOf() ));
 	}
 
-	void PostProcessor::ApplyRadialDensityMask( ID3D11DepthStencilView *depthStencilView, uint32_t width, uint32_t height, float depth, uint8_t stencil ) {
-		bool bothEyes = !textureContainsOnlyOneEye || width >= 2 * textureWidth;
+	ID3D11DepthStencilView * PostProcessor::GetDepthStencilView( ID3D11Texture2D *depthStencilTex, EVREye eye ) {
+		if ( depthStencilViews.find( depthStencilTex ) == depthStencilViews.end() ) {
+			Log() << "Creating depth stencil views for " << std::hex << depthStencilTex << std::dec << "\n";
+			D3D11_TEXTURE2D_DESC td;
+			depthStencilTex->GetDesc( &td );
+			bool isArray = td.ArraySize == 2;
+			bool isMS = td.SampleDesc.Count > 1;
+			Log() << "Texture format " << td.Format << ", array size " << td.ArraySize << ", sample count " << td.SampleDesc.Count << "\n";
+			D3D11_DEPTH_STENCIL_VIEW_DESC dvd;
+			dvd.Format = TranslateTypelessDepthFormats( td.Format );
+			dvd.ViewDimension = isMS ? D3D11_DSV_DIMENSION_TEXTURE2DMS : D3D11_DSV_DIMENSION_TEXTURE2D;
+			dvd.Flags = 0;
+			dvd.Texture2D.MipSlice = 0;
+			auto &views = depthStencilViews[depthStencilTex];
+			HRESULT result = device->CreateDepthStencilView( depthStencilTex, &dvd, views.view[0].GetAddressOf() );
+			if (FAILED(result)) {
+				Log() << "Error creating depth stencil view: " << std::hex << result << std::dec << std::endl;
+				return nullptr;
+			}
+			if (isArray) {
+				Log() << "Depth stencil texture is an array, using separate slice per eye\n";
+				dvd.ViewDimension = isMS ? D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY : D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+				dvd.Texture2DArray.MipSlice = 0;
+				dvd.Texture2DArray.ArraySize = 1;
+				dvd.Texture2DArray.FirstArraySlice = D3D11CalcSubresource( 0, 1, 1 );
+				dvd.Texture2DMSArray.ArraySize = 1;
+				dvd.Texture2DMSArray.FirstArraySlice = D3D11CalcSubresource( 0, 1, 1 );
+				result = device->CreateDepthStencilView( depthStencilTex, &dvd, views.view[1].GetAddressOf() );
+				if (FAILED(result)) {
+					Log() << "Error creating depth stencil view array slice: " << std::hex << result << std::dec << std::endl;
+					return nullptr;
+				}
+			} else {
+				views.view[1] = views.view[0];
+			}
+		}
+
+		return depthStencilViews[depthStencilTex].view[eye].Get();
+	}
+
+	void PostProcessor::ApplyRadialDensityMask( ID3D11Texture2D *depthStencilTex, float depth, uint8_t stencil ) {
+		D3D11_TEXTURE2D_DESC td;
+		depthStencilTex->GetDesc( &td );
+		bool sideBySide = !textureContainsOnlyOneEye || td.Width >= 2 * textureWidth;
+		bool arrayTex = td.ArraySize == 2;
 		vr::EVREye currentEye = vr::Eye_Left;
-		if (!bothEyes && depthClearCount > 0) {
+		if (!sideBySide && !arrayTex && depthClearCount > 0) {
 			currentEye = vr::Eye_Right;
 		}
-		uint32_t renderWidth = width * (bothEyes ? 0.5 : 1);
-		uint32_t renderHeight = height;
+		uint32_t renderWidth = td.Width * (sideBySide ? 0.5 : 1);
+		uint32_t renderHeight = td.Height;
 		++depthClearCount;
 
 		// store current D3D11 state before drawing RDM mask
@@ -444,7 +503,7 @@ namespace vr {
 		context->IASetPrimitiveTopology( D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 		context->IASetVertexBuffers( 0, 0, nullptr, nullptr, nullptr );
 		context->IASetIndexBuffer( nullptr, DXGI_FORMAT_UNKNOWN, 0 );
-		context->OMSetRenderTargets( 0, nullptr, depthStencilView );
+		context->OMSetRenderTargets( 0, nullptr, GetDepthStencilView(depthStencilTex, currentEye) );
 		context->RSSetState(rdmRasterizerState.Get());
 		context->OMSetDepthStencilState(rdmDepthStencilState.Get(), ~stencil);
 
@@ -475,7 +534,7 @@ namespace vr {
 
 		context->Draw( 3, 0 );
 
-		if (bothEyes) {
+		if (sideBySide || arrayTex) {
 			constants.projectionCenter[0] = projX[Eye_Right] + 1.f;
 			constants.projectionCenter[1] = projY[Eye_Right];
 			context->Map( rdmMaskingConstantsBuffer[Eye_Right].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped );
@@ -483,6 +542,7 @@ namespace vr {
 			context->Unmap( rdmMaskingConstantsBuffer[Eye_Right].Get(), 0 );
 			context->VSSetConstantBuffers( 0, 1, rdmMaskingConstantsBuffer[1].GetAddressOf() );
 			context->PSSetConstantBuffers( 0, 1, rdmMaskingConstantsBuffer[1].GetAddressOf() );
+			context->OMSetRenderTargets( 0, nullptr, GetDepthStencilView(depthStencilTex, Eye_Right) );
 			vp.TopLeftX = renderWidth;
 			context->RSSetViewports( 1, &vp );
 			context->Draw( 3, 0 );
@@ -516,8 +576,6 @@ namespace vr {
 		context->CSSetShader( rdmReconstructShader.Get(), nullptr, 0 );
 		ID3D11Buffer *emptyBind[] = {nullptr};
 		context->CSSetConstantBuffers( 0, 1, emptyBind );
-
-		Log() << "Reconstruction for eye " << eye << " at offset " << x << ", " << y << " and size " << width << "x" << height << "\n";
 
 		RdmReconstructConstants constants;
 		constants.offset[0] = x;
@@ -674,7 +732,6 @@ namespace vr {
 
 
 	void PostProcessor::ApplyPostProcess( EVREye eEye, ID3D11Texture2D *inputTexture, const VRTextureBounds_t *bounds ) {
-		Log() << "ApplyPostProcess for eye " << eEye << " and bounds " << bounds->uMin << ", " << bounds->uMax << ", " << bounds->vMin << ", " << bounds->vMax << "\n";
 		ID3D11Buffer* currentConstBuffs[1];
 		ID3D11ShaderResourceView* currentSRVs[3];
 		ID3D11UnorderedAccessView* currentUAVs[1];

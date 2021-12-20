@@ -50,9 +50,14 @@ namespace vr {
 		ComPtr<ID3D11DepthStencilState> rdmDepthStencilState;
 		ComPtr<ID3D11RasterizerState> rdmRasterizerState;
 		int depthClearCount = 0;
+		struct DepthStencilViews {
+			ComPtr<ID3D11DepthStencilView> view[2];
+		};
+		std::unordered_map<ID3D11Texture2D*, DepthStencilViews> depthStencilViews;
 
 		void PrepareRdmResources(DXGI_FORMAT format);
-		void ApplyRadialDensityMask(ID3D11DepthStencilView *depthStencilView, uint32_t width, uint32_t height, float depth, uint8_t stencil);
+		ID3D11DepthStencilView * GetDepthStencilView( ID3D11Texture2D * depthStencilTex, EVREye eye );
+		void ApplyRadialDensityMask(ID3D11Texture2D *depthStencilTex, float depth, uint8_t stencil);
 		void ReconstructRdmRender(vr::EVREye eye, ID3D11ShaderResourceView *inputView, int x, int y, int width, int height);
 
 		// NIS specific lookup textures
