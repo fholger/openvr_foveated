@@ -469,33 +469,34 @@ namespace vr {
 		context->VSGetShader(prevVS.GetAddressOf(), nullptr, nullptr);
 		ComPtr<ID3D11PixelShader> prevPS;
 		context->PSGetShader(prevPS.GetAddressOf(), nullptr, nullptr);
-		/*ComPtr<ID3D11InputLayout> inputLayout;
+		ComPtr<ID3D11InputLayout> inputLayout;
 		context->IAGetInputLayout( inputLayout.GetAddressOf() );
 		D3D11_PRIMITIVE_TOPOLOGY topology;
 		context->IAGetPrimitiveTopology( &topology );
 		ID3D11Buffer *vertexBuffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
 		UINT strides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
 		UINT offsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
-		//context->IAGetVertexBuffers( 0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, vertexBuffers, strides, offsets );
+		context->IAGetVertexBuffers( 0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, vertexBuffers, strides, offsets );
 		ComPtr<ID3D11Buffer> indexBuffer;
 		DXGI_FORMAT format;
 		UINT offset;
 		context->IAGetIndexBuffer(indexBuffer.GetAddressOf(), &format, &offset);
 		ID3D11RenderTargetView *renderTargets[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
 		ComPtr<ID3D11DepthStencilView> depthStencil;
-		//context->OMGetRenderTargets( D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, renderTargets, depthStencil.GetAddressOf() );
+		context->OMGetRenderTargets( D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, renderTargets, depthStencil.GetAddressOf() );
 		ComPtr<ID3D11RasterizerState> rasterizerState;
 		context->RSGetState( rasterizerState.GetAddressOf() );
 		ComPtr<ID3D11DepthStencilState> depthStencilState;
 		UINT stencilRef;
 		context->OMGetDepthStencilState( depthStencilState.GetAddressOf(), &stencilRef );
 		D3D11_VIEWPORT viewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
-		UINT numViewports;
+		UINT numViewports = 0;
+		context->RSGetViewports( &numViewports, nullptr );
 		context->RSGetViewports( &numViewports, viewports );
 		ComPtr<ID3D11Buffer> vsConstantBuffer;
 		context->VSGetConstantBuffers( 0, 1, vsConstantBuffer.GetAddressOf() );
 		ComPtr<ID3D11Buffer> psConstantBuffer;
-		context->PSGetConstantBuffers( 0, 1, psConstantBuffer.GetAddressOf() );*/
+		context->PSGetConstantBuffers( 0, 1, psConstantBuffer.GetAddressOf() );
 
 		context->VSSetShader( rdmFullTriVertexShader.Get(), nullptr, 0 );
 		context->PSSetShader( rdmMaskingShader.Get(), nullptr, 0 );
@@ -551,25 +552,25 @@ namespace vr {
 		// restore previous state
 		context->VSSetShader(prevVS.Get(), nullptr, 0);
 		context->PSSetShader(prevPS.Get(), nullptr, 0);
-		//context->IASetInputLayout( inputLayout.Get() );
-		//context->IASetPrimitiveTopology( topology );
-		/*context->IASetVertexBuffers( 0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, vertexBuffers, strides, offsets );
+		context->IASetInputLayout( inputLayout.Get() );
+		context->IASetPrimitiveTopology( topology );
+		context->IASetVertexBuffers( 0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, vertexBuffers, strides, offsets );
 		for (int i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; ++i) {
 			if (vertexBuffers[i])
 				vertexBuffers[i]->Release();
-		}*/
-		//context->IASetIndexBuffer( indexBuffer.Get(), format, offset );
-		/*context->OMSetRenderTargets( D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, renderTargets, depthStencil.Get() );
+		}
+		context->IASetIndexBuffer( indexBuffer.Get(), format, offset );
+		context->OMSetRenderTargets( D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, renderTargets, depthStencil.Get() );
 		for (int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i) {
 			if (renderTargets[i]) {
 				renderTargets[i]->Release();
 			}
-		}*/
-		//context->RSSetState( rasterizerState.Get() );
-		//context->OMSetDepthStencilState( depthStencilState.Get(), stencilRef );
-		//context->RSSetViewports( numViewports, viewports );
-		//context->VSSetConstantBuffers( 0, 1, vsConstantBuffer.GetAddressOf() );
-		//context->PSSetConstantBuffers( 0, 1, psConstantBuffer.GetAddressOf() );
+		}
+		context->RSSetState( rasterizerState.Get() );
+		context->OMSetDepthStencilState( depthStencilState.Get(), stencilRef );
+		context->RSSetViewports( numViewports, viewports );
+		context->VSSetConstantBuffers( 0, 1, vsConstantBuffer.GetAddressOf() );
+		context->PSSetConstantBuffers( 0, 1, psConstantBuffer.GetAddressOf() );
 	}
 
 	void PostProcessor::ReconstructRdmRender( vr::EVREye eye, ID3D11ShaderResourceView *inputView, int x, int y, int width, int height ) {
