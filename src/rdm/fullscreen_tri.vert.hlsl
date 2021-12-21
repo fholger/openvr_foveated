@@ -1,8 +1,3 @@
-struct PSInput {
-	float4 position : SV_POSITION;
-	float2 uv : TEXCOORD0;
-};
-
 cbuffer cb : register(b0) {
 	float depthOut;
 	float3 radius;
@@ -10,10 +5,10 @@ cbuffer cb : register(b0) {
 	float2 projectionCenter;
 };
 
-PSInput main(uint vertexId: SV_VERTEXID) {
-	PSInput result;
-	result.uv.x = (vertexId == 2) ? 2.0 : 0.0;
-	result.uv.y = (vertexId == 1) ? 2.0 : 0.0;
-	result.position = float4(result.uv * float2(2.0, -2.0) + float2(-1.0, 1.0), depthOut, 1.0);
-	return result;
+float4 main(uint vertexId: SV_VERTEXID) : SV_POSITION {
+	float4 position;
+	position.x = (vertexId == 2) ? 3.0 : -1.0;
+	position.y = (vertexId == 1) ? -3.0 : 1.0;
+	position.zw = float2(1.0, 1.0);
+	return position;
 }

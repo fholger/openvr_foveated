@@ -432,12 +432,16 @@ namespace vr {
 			}
 			if (isArray) {
 				Log() << "Depth stencil texture is an array, using separate slice per eye\n";
-				dvd.ViewDimension = isMS ? D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY : D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
-				dvd.Texture2DArray.MipSlice = 0;
-				dvd.Texture2DArray.ArraySize = 1;
-				dvd.Texture2DArray.FirstArraySlice = D3D11CalcSubresource( 0, 1, 1 );
-				dvd.Texture2DMSArray.ArraySize = 1;
-				dvd.Texture2DMSArray.FirstArraySlice = D3D11CalcSubresource( 0, 1, 1 );
+				if (isMS) {
+					dvd.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
+					dvd.Texture2DMSArray.ArraySize = 1;
+					dvd.Texture2DMSArray.FirstArraySlice = D3D11CalcSubresource( 0, 1, 1 );
+				} else {
+					dvd.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+					dvd.Texture2DArray.MipSlice = 0;
+					dvd.Texture2DArray.ArraySize = 1;
+					dvd.Texture2DArray.FirstArraySlice = D3D11CalcSubresource( 0, 1, 1 );
+				}
 				result = device->CreateDepthStencilView( depthStencilTex, &dvd, views.view[1].GetAddressOf() );
 				if (FAILED(result)) {
 					Log() << "Error creating depth stencil view array slice: " << std::hex << result << std::dec << std::endl;
@@ -536,7 +540,7 @@ namespace vr {
 		context->Draw( 3, 0 );
 
 		if (sideBySide || arrayTex) {
-			constants.projectionCenter[0] = projX[Eye_Right] + 1.f;
+			constants.projectionCenter[0] = projX[Eye_Right] + (sideBySide ? 1.f : 0.f);
 			constants.projectionCenter[1] = projY[Eye_Right];
 			context->Map( rdmMaskingConstantsBuffer[Eye_Right].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped );
 			memcpy(mapped.pData, &constants, sizeof(constants));
@@ -544,7 +548,9 @@ namespace vr {
 			context->VSSetConstantBuffers( 0, 1, rdmMaskingConstantsBuffer[1].GetAddressOf() );
 			context->PSSetConstantBuffers( 0, 1, rdmMaskingConstantsBuffer[1].GetAddressOf() );
 			context->OMSetRenderTargets( 0, nullptr, GetDepthStencilView(depthStencilTex, Eye_Right) );
-			vp.TopLeftX = renderWidth;
+			if (sideBySide) {
+				vp.TopLeftX = renderWidth;
+			}
 			context->RSSetViewports( 1, &vp );
 			context->Draw( 3, 0 );
 		}
@@ -590,7 +596,7 @@ namespace vr {
 		constants.radius[0] = Config::Instance().innerRadius;
 		constants.radius[1] = Config::Instance().midRadius;
 		constants.radius[2] = Config::Instance().outerRadius;
-		constants.quality = 2;
+		constants.quality = 0;
 		if (!textureContainsOnlyOneEye && eye == Eye_Right)
 			constants.projectionCenter[0] += 1.f;
 		D3D11_MAPPED_SUBRESOURCE mapped { nullptr, 0, 0 };
