@@ -3,14 +3,17 @@ cbuffer cb : register(b0) {
 	float3 radius;
 	float2 invClusterResolution;
 	float2 projectionCenter;
+	float2 yFix;
+	float2 unused;
 };
 
 float4 main(float4 position : SV_POSITION) : SV_TARGET {
 	// working in blocks of 8x8 pixels
-	float2 toCenter = trunc(position.xy * 0.125f) * invClusterResolution.xy - projectionCenter;
+	float2 pos = float2(position.x, position.y * yFix.x + yFix.y);
+	float2 toCenter = trunc(pos.xy * 0.125f) * invClusterResolution.xy - projectionCenter;
 	float distToCenter = length(toCenter) * 2;
 
-	uint2 iFragCoordHalf = uint2( position.xy * 0.5f );
+	uint2 iFragCoordHalf = uint2( pos.xy * 0.5f );
 
 	if( distToCenter < radius.x )
 		discard;

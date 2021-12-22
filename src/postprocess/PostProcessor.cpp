@@ -325,6 +325,8 @@ namespace vr {
 		float radius[3];
 		float invClusterResolution[2];
 		float projectionCenter[2];
+		float yFix[2];
+		float unused[2];
 	};
 
 	struct RdmReconstructConstants {
@@ -521,6 +523,10 @@ namespace vr {
 		constants.invClusterResolution[1] = 8.f / renderHeight;
 		constants.projectionCenter[0] = projX[currentEye];
 		constants.projectionCenter[1] = projY[currentEye];
+		// new Unity engine with array textures renders heads down and then flips the texture before submitting.
+		// so we also need to construct the RDM heads-down in that case.
+		constants.yFix[0] = arrayTex ? -1 : 1;
+		constants.yFix[1] = arrayTex ? renderHeight : 0;
 		D3D11_MAPPED_SUBRESOURCE mapped { nullptr, 0, 0 };
 		context->Map( rdmMaskingConstantsBuffer[currentEye].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped );
 		memcpy(mapped.pData, &constants, sizeof(constants));
@@ -596,7 +602,7 @@ namespace vr {
 		constants.radius[0] = Config::Instance().innerRadius;
 		constants.radius[1] = Config::Instance().midRadius;
 		constants.radius[2] = Config::Instance().outerRadius;
-		constants.quality = 0;
+		constants.quality = 2;
 		if (!textureContainsOnlyOneEye && eye == Eye_Right)
 			constants.projectionCenter[0] += 1.f;
 		D3D11_MAPPED_SUBRESOURCE mapped { nullptr, 0, 0 };
@@ -801,8 +807,7 @@ namespace vr {
 
 				if (countedQueries >= 500) {
 					float avgTimeMs = 1000.f / countedQueries * summedGpuTime;
-					if (textureContainsOnlyOneEye)
-						avgTimeMs *= 2;
+					avgTimeMs *= 2; // because it's only for one eye, and we are interested in a time for both
 					Log() << "Average GPU processing time for upscale: " << avgTimeMs << " ms\n";
 					countedQueries = 0;
 					summedGpuTime = 0.f;
