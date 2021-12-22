@@ -677,12 +677,10 @@ namespace vr {
 	void PostProcessor::ApplySharpening( EVREye eEye, ID3D11ShaderResourceView *inputView, int x, int y, int width, int height ) {
 		NISConfig nisConfig;
 		NVSharpenUpdateConfig( nisConfig, Config::Instance().sharpness, x, y, width, height, textureWidth, textureHeight, x, y );
-		nisConfig.imageCentre[0] = x + width * projX[eEye];
-		nisConfig.imageCentre[1] = y + height * projY[eEye];
+		nisConfig.imageCentre[0] = width * projX[eEye];
+		nisConfig.imageCentre[1] = height * projY[eEye];
 		nisConfig.radius[0] = 0.5f * Config::Instance().sharpenRadius * height;
 		nisConfig.radius[1] = nisConfig.radius[0] * nisConfig.radius[0];
-		nisConfig.radius[2] = textureWidth;
-		nisConfig.radius[3] = textureHeight;
 		nisConfig.reserved1 = Config::Instance().debugMode ? 1.f : 0.f;
 		D3D11_MAPPED_SUBRESOURCE mapped { nullptr, 0, 0 };
 		context->Map( sharpenConstantsBuffer[eEye].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped );

@@ -24,6 +24,7 @@
 #define NIS_BLOCK_WIDTH 32
 #define NIS_BLOCK_HEIGHT 32
 #define NIS_THREAD_GROUP_SIZE 256
+#define NIS_VIEWPORT_SUPPORT 1
 
 cbuffer cb : register(b0)
 {
@@ -63,8 +64,8 @@ cbuffer cb : register(b0)
 	float reserved0;
 	float reserved1;
 
-	uint4 centre;
-	uint4 radius;
+	uint2 centre;
+	uint2 radius;
 };
 
 SamplerState samplerLinearClamp : register(s0);
@@ -95,8 +96,7 @@ void main(uint3 blockIdx : SV_GroupID, uint3 threadIdx : SV_GroupThreadID)
 {
 	uint2 groupCentre = uint2((blockIdx.x * 32) + 16, (blockIdx.y * 32) + 16);
 	uint2 dc1 = centre.xy - groupCentre;
-	uint2 dc2 = centre.zw - groupCentre;
-	if (dot(dc1, dc1) <= radius.y || dot(dc2, dc2) <= radius.y) {
+	if (dot(dc1, dc1) <= radius.y) {
 		NVSharpen(blockIdx.xy, threadIdx.x);
 	}
 	else {

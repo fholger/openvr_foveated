@@ -72,8 +72,8 @@ struct NIS_ALIGNED(256) NISConfig
     float reserved0;
     float reserved1;
 
-    uint32_t imageCentre[4];
-    uint32_t radius[4];
+    uint32_t imageCentre[2];
+    uint32_t radius[2];
 };
 
 enum class NISHDRMode : uint32_t

@@ -226,9 +226,8 @@ void main(uint3 globalInvocationID : SV_DispatchThreadID) {
 	uint2 uFragCoordHalf = uint2(currentUV >> 1u);
 
 	//We must work in blocks so the reconstruction filter can work properly
-	float2 truncUV = (currentUV >> 3u) * u_invClusterResolution;
-	float2 toCenter = truncUV - u_projectionCenter;
-	float distToCenter = 2 * length(toCenter);
+	float2 toCenter     = (currentUV >> 3u) * u_invClusterResolution - u_projectionCenter;
+	float  distToCenter = 2 * length(toCenter);
 
 	//We know for a fact distToCenter is in blocks of 8x8
 	if( anyInvocationARB( distToCenter >= u_radius.x ) )
