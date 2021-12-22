@@ -153,6 +153,8 @@ if(USE_CUSTOM_LIBCXX)
 	set(EXTRA_LIBS ${EXTRA_LIBS} c++ c++abi)
 endif()
 
+set(EXTRA_LIBS ${EXTRA_LIBS} dxguid)
+
 set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_TYPE Compute)
 set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_MODEL "5.0")
 set_property(SOURCE nis/NIS_Sharpen.hlsl PROPERTY VS_SHADER_OUTPUT_HEADER_FILE "shader_nis_sharpen.h")

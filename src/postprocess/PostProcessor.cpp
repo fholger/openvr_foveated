@@ -2,6 +2,7 @@
 #include "PostProcessor.h"
 #define no_init_all deprecated
 #include <d3d11.h>
+#include <d3dcommon.h>
 #include <wrl/client.h>
 #define A_CPU
 #include "nis/NIS_Config.h"
@@ -457,7 +458,23 @@ namespace vr {
 		return depthStencilViews[depthStencilTex].view[eye].Get();
 	}
 
+	bool HasBlacklistedTextureName(ID3D11Texture2D *tex) {
+		// used to ignore certain depth textures that we know are not relevant for us
+		// currently found in some older Unity games
+		char debugName[255] = { 0 };
+		UINT bufferSize = 255;
+		tex->GetPrivateData( WKPDID_D3DDebugObjectName, &bufferSize, debugName );
+		if (strncmp( debugName, "Camera DepthTexture", 255 ) == 0) {
+			return true;
+		}
+		return false;
+	}
+
 	void PostProcessor::ApplyRadialDensityMask( ID3D11Texture2D *depthStencilTex, float depth, uint8_t stencil ) {
+		if (HasBlacklistedTextureName(depthStencilTex)) {
+			return;
+		}
+
 		D3D11_TEXTURE2D_DESC td;
 		depthStencilTex->GetDesc( &td );
 		bool sideBySide = !textureContainsOnlyOneEye || td.Width >= 2 * textureWidth;
