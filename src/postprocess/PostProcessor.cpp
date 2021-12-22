@@ -347,6 +347,49 @@ namespace vr {
 		int quality;
 	};
 
+	void PostProcessor::CalculateSavedPixelCount() {
+		int width = textureWidth;
+		int height = textureHeight;
+		if (!textureContainsOnlyOneEye) {
+			width /= 2;
+		}
+		int numBlocksX = width / 8;
+		int numBlocksY = height / 8;
+
+		size_t renderedPixels = 0;
+		int fullBlocks = 0;
+		int halfBlocks = 0;
+		int quarterBlocks = 0;
+		int sixteenthBlocks = 0;
+		for (int x = 0; x < numBlocksX; ++x) {
+			for (int y = 0; y < numBlocksY; ++y) {
+				float fx = (float)x / numBlocksX;
+				float fy = (float)y / numBlocksY;
+				float toCenter = 2 * sqrt((fx - projX[0]) * (fx - projX[0]) + (fy - projY[0]) * (fy - projY[0]));
+				if (toCenter < Config::Instance().innerRadius) {
+					renderedPixels += 64;
+					++fullBlocks;
+				}
+				else if (toCenter < Config::Instance().midRadius) {
+					renderedPixels += 32;
+					++halfBlocks;
+				}
+				else if (toCenter < Config::Instance().outerRadius) {
+					renderedPixels += 16;
+					++quarterBlocks;
+				}
+				else {
+					renderedPixels += 4;
+					++sixteenthBlocks;
+				}
+			}
+		}
+
+		double renderedPct = (double)renderedPixels * 100.0 / width / height;
+		Log() << "Current profile renders " << std::setprecision(2) << renderedPct << "% of pixels of target resolution " << width << "x" << height << "\n";
+		Log() << "There are " << numBlocksX * numBlocksY << " blocks, " << fullBlocks << " at full res, " << halfBlocks << " at half res, " << quarterBlocks << " at 1/4th res, " << sixteenthBlocks << " at 1/16th res.\n";
+	}
+
 	void PostProcessor::PrepareRdmResources( DXGI_FORMAT format ) {
 		CheckResult("Creating RDM fullscreen tri vertex shader", device->CreateVertexShader( g_RDMFullscreenTriShader, sizeof( g_RDMFullscreenTriShader ), nullptr, rdmFullTriVertexShader.GetAddressOf() ));
 		CheckResult("Creating RDM masking shader", device->CreatePixelShader( g_RDMMaskShader, sizeof( g_RDMMaskShader ), nullptr, rdmMaskingShader.GetAddressOf() ));
@@ -420,6 +463,8 @@ namespace vr {
 		bd.ByteWidth = sizeof(RdmReconstructConstants);
 		CheckResult("Creating RDM reconstruct constants buffer", device->CreateBuffer( &bd, nullptr, rdmReconstructConstantsBuffer[0].GetAddressOf() ));
 		CheckResult("Creating RDM reconstruct constants buffer", device->CreateBuffer( &bd, nullptr, rdmReconstructConstantsBuffer[1].GetAddressOf() ));
+
+		CalculateSavedPixelCount();
 	}
 
 	ID3D11DepthStencilView * PostProcessor::GetDepthStencilView( ID3D11Texture2D *depthStencilTex, EVREye eye ) {

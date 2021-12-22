@@ -55,8 +55,9 @@ namespace vr {
 		};
 		std::unordered_map<ID3D11Texture2D*, DepthStencilViews> depthStencilViews;
 
+		void CalculateSavedPixelCount();
 		void PrepareRdmResources(DXGI_FORMAT format);
-		ID3D11DepthStencilView * GetDepthStencilView( ID3D11Texture2D * depthStencilTex, EVREye eye );
+		ID3D11DepthStencilView *GetDepthStencilView( ID3D11Texture2D *depthStencilTex, EVREye eye );
 		void ApplyRadialDensityMask(ID3D11Texture2D *depthStencilTex, float depth, uint8_t stencil);
 		void ReconstructRdmRender(vr::EVREye eye, ID3D11ShaderResourceView *inputView, int x, int y, int width, int height);
 
