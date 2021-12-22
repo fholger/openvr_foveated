@@ -14,6 +14,7 @@ struct Config {
 	bool useSharpening = false;
 	float sharpness = 0.4f;
 	float sharpenRadius = 0.5f;
+	bool hotkeysEnabled = true;
 
 	static Config Load() {
 		Config config;
@@ -28,6 +29,7 @@ struct Config {
 				config.midRadius = foveated.get("midRadius", 0.75f).asFloat();
 				config.outerRadius = foveated.get("outerRadius", 0.85f).asFloat();
 				config.debugMode = foveated.get("debugMode", false).asBool();
+				config.hotkeysEnabled = foveated.get("enableHotkeys", true).asBool();
 
 				Json::Value sharpen = foveated.get("sharpen", Json::Value());
 				config.useSharpening = sharpen.get("enabled", false).asBool();

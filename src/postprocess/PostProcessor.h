@@ -82,6 +82,8 @@ namespace vr {
 		void PrepareResources(ID3D11Texture2D *inputTexture, EColorSpace colorSpace);
 		void ApplyPostProcess(EVREye eEye, ID3D11Texture2D *inputTexture, const VRTextureBounds_t *bounds);
 
+		void CheckHotkeys();
+
 		struct ProfileQuery {
 			ComPtr<ID3D11Query> queryDisjoint;
 			ComPtr<ID3D11Query> queryStart;

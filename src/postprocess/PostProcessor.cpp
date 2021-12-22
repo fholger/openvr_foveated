@@ -2,9 +2,10 @@
 #include "PostProcessor.h"
 #define no_init_all deprecated
 #include <d3d11.h>
-#include <d3dcommon.h>
 #include <wrl/client.h>
 #define A_CPU
+#include <iomanip>
+
 #include "nis/NIS_Config.h"
 #include "Config.h"
 #include "shader_nis_sharpen.h"
@@ -12,6 +13,9 @@
 #include "shader_rdm_mask.h"
 #include "shader_rdm_reconstruction.h"
 #include "VrHooks.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 
 using Microsoft::WRL::ComPtr;
 
@@ -133,6 +137,10 @@ namespace vr {
 	}
 
 	void PostProcessor::Apply(EVREye eEye, const Texture_t *pTexture, const VRTextureBounds_t* pBounds, EVRSubmitFlags nSubmitFlags) {
+		if (Config::Instance().hotkeysEnabled) {
+			CheckHotkeys();
+		}
+
 		if (!enabled || pTexture == nullptr || pTexture->eType != TextureType_DirectX || pTexture->handle == nullptr) {
 			return;
 		}
@@ -823,11 +831,24 @@ namespace vr {
 				if (countedQueries >= 500) {
 					float avgTimeMs = 1000.f / countedQueries * summedGpuTime;
 					avgTimeMs *= 2; // because it's only for one eye, and we are interested in a time for both
-					Log() << "Average GPU processing time for upscale: " << avgTimeMs << " ms\n";
+					Log() << "Average GPU post-processing time per frame: " << avgTimeMs << " ms\n";
 					countedQueries = 0;
 					summedGpuTime = 0.f;
 				}
 			}
 		}
+	}
+
+	void PostProcessor::CheckHotkeys() {
+		static bool wasOnOffTogglePressed = false;
+		bool isOnOffTogglePressed = GetAsyncKeyState(VK_F1);
+		if (!wasOnOffTogglePressed && isOnOffTogglePressed) {
+			enabled = !enabled;
+			if (enabled)
+				Log() << "Fixed foveated rendering is now enabled.\n";
+			else
+				Log() << "Fixed foveated rendering is now disabled.\n";
+		}
+		wasOnOffTogglePressed = isOnOffTogglePressed;
 	}
 }
