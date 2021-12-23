@@ -794,18 +794,6 @@ namespace vr {
 			}
 
 			HookD3D11Context( context.Get(), device.Get() );
-
-			if (Config::Instance().debugMode) {
-				for (int i = 0; i < QUERY_COUNT; ++i) {
-					D3D11_QUERY_DESC qd;
-					qd.Query = D3D11_QUERY_TIMESTAMP;
-					qd.MiscFlags = 0;
-					device->CreateQuery(&qd, profileQueries[i].queryStart.GetAddressOf());
-					device->CreateQuery(&qd, profileQueries[i].queryEnd.GetAddressOf());
-					qd.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
-					device->CreateQuery(&qd, profileQueries[i].queryDisjoint.GetAddressOf());
-				}
-			}
 		}
 
 		initialized = true;
@@ -829,6 +817,17 @@ namespace vr {
 		}
 
 		if (Config::Instance().debugMode) {
+			if (!profileQueries[0].queryStart) {
+				for (int i = 0; i < QUERY_COUNT; ++i) {
+					D3D11_QUERY_DESC qd;
+					qd.Query = D3D11_QUERY_TIMESTAMP;
+					qd.MiscFlags = 0;
+					device->CreateQuery(&qd, profileQueries[i].queryStart.GetAddressOf());
+					device->CreateQuery(&qd, profileQueries[i].queryEnd.GetAddressOf());
+					qd.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+					device->CreateQuery(&qd, profileQueries[i].queryDisjoint.GetAddressOf());
+				}
+			}
 			context->Begin(profileQueries[currentQuery].queryDisjoint.Get());
 			context->End(profileQueries[currentQuery].queryStart.Get());
 		}
