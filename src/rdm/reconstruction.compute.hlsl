@@ -13,7 +13,7 @@ cbuffer cb : register(b0) {
 	float2 u_invClusterResolution;
 	float2 u_invResolution;
 	float3 u_radius;
-	int u_quality;
+	int u_debugMode;
 };
 
 // FIXME: AMD/NVIDIA extensions?
@@ -45,63 +45,7 @@ void reconstructHalfResLow( int2 dstUV, uint2 uFragCoordHalf )
 	int2 uv = dstUV + offset;
 	float4 srcVal = texelFetch( u_srcTex, uv.xy, 0 );
 
-	imageStore( u_dstTex, dstUV, srcVal );
-}
-
-/** For non-rendered pixels, it averages the closest neighbours eg.
-		ab
-		cd
-	 ef xy ij
-	 gh zw kl
-		mn
-		op
-	x = avg( f, c )
-	y = avg( d, i )
-	z = avg( h, m )
-	w = avg( n, k )
-
-	For rendered samples, it averages diagonals:
-	ef
-	gh
-		ab
-		cd
-	outputs:
-	h' = avg( a, h )
-	a' = avg( a, h )
-*/
-void reconstructHalfResMedium( int2 dstUV, uint2 uFragCoordHalf )
-{
-	if( (uFragCoordHalf.x & 0x01u) != (uFragCoordHalf.y & 0x01u) )
-	{
-		int2 offset0;
-		int2 offset1;
-		offset0.x = (dstUV.x & 0x01) == 0 ? -1 : 1;
-		offset0.y = 0;
-
-		offset1.x = 0;
-		offset1.y = (dstUV.y & 0x01) == 0 ? -1 : 1;
-
-		int2 uv0 = int2( int2( dstUV ) + offset0 );
-		float4 srcVal0 = texelFetch( u_srcTex, uv0.xy, 0 );
-		int2 uv1 = int2( int2( dstUV ) + offset1 );
-		float4 srcVal1 = texelFetch( u_srcTex, uv1.xy, 0 );
-
-		imageStore( u_dstTex, dstUV, (srcVal0 + srcVal1) * 0.5f );
-	}
-	else
-	{
-		int2 uv = int2( dstUV );
-		float4 srcVal = texelFetch( u_srcTex, uv.xy, 0 );
-
-		int2 offset0;
-		offset0.x = (dstUV.x & 0x01) == 0 ? -1 : 1;
-		offset0.y = (dstUV.y & 0x01) == 0 ? -1 : 1;
-
-		int2 uv0 = int2( int2( dstUV ) + offset0 );
-		float4 srcVal0 = texelFetch( u_srcTex, uv0.xy, 0 );
-
-		imageStore( u_dstTex, dstUV, (srcVal + srcVal0) * 0.5f );
-	}
+	imageStore( u_dstTex, dstUV, srcVal + u_debugMode * float4(0.2, 0, 0, 0) );
 }
 
 /* Uses Valve's Alex Vlachos Advanced VR Rendering Performance technique
@@ -134,7 +78,7 @@ void reconstructHalfResHigh( int2 dstUV, uint2 uFragCoordHalf )
 		float4 srcVal1N = textureLod( u_srcTex, uv1N.xy, 0 );
 
 		float4 finalVal = srcVal0 * 0.375f + srcVal1 * 0.375f + srcVal0N * 0.125f + srcVal1N * 0.125f;
-		imageStore( u_dstTex, dstUV, finalVal );
+		imageStore( u_dstTex, dstUV, finalVal + u_debugMode * float4(0.2, 0, 0, 0) );
 	}
 	else
 	{
@@ -160,7 +104,7 @@ void reconstructHalfResHigh( int2 dstUV, uint2 uFragCoordHalf )
 							srcBL * weights[(idx + 2) & 0x03] +
 							srcBR * weights[(idx + 3) & 0x03];
 
-		imageStore( u_dstTex, dstUV, finalVal );
+		imageStore( u_dstTex, dstUV, finalVal + u_debugMode * float4(0.2, 0, 0, 0) );
 	}
 }
 
@@ -184,7 +128,7 @@ void reconstructQuarterRes( int2 dstUV, uint2 uFragCoordHalf )
 	int2 uv = int2( int2( dstUV ) + offset );
 	float4 srcVal = texelFetch( u_srcTex, uv.xy, 0 );
 
-	imageStore( u_dstTex, dstUV, srcVal );
+	imageStore( u_dstTex, dstUV, srcVal + u_debugMode * float4(0, 0.2, 0, 0) );
 }
 
 /** Same as reconstructQuarterRes, but a lot more samples to repeat:
@@ -217,7 +161,7 @@ void reconstructSixteenthRes( int2 dstUV, uint2 uFragCoordHalf )
 	int2 uv = int2( int2( dstUV ) + offset );
 	float4 srcVal = texelFetch( u_srcTex, uv.xy, 0 );
 
-	imageStore( u_dstTex, dstUV, srcVal );
+	imageStore( u_dstTex, dstUV, srcVal + u_debugMode * float4(0, 0, 0.2, 0) );
 }
 
 [numthreads(8, 8, 1)]
@@ -234,14 +178,9 @@ void main(uint3 globalInvocationID : SV_DispatchThreadID) {
 	{
 		if( anyInvocationARB( distToCenter < u_radius.y ) )
 		{
-			if( anyInvocationARB( distToCenter + u_invClusterResolution.x < u_radius.y ) )
+			if( anyInvocationARB( distToCenter + 2 * u_invClusterResolution.x < u_radius.y ) )
 			{
-				if (u_quality == 0) 
-					reconstructHalfResLow( int2(currentUV), uFragCoordHalf );
-				else if (u_quality == 1)
-					reconstructHalfResMedium( int2(currentUV), uFragCoordHalf );
-				else
-					reconstructHalfResHigh( int2(currentUV), uFragCoordHalf );
+				reconstructHalfResHigh( int2(currentUV), uFragCoordHalf );
 			}
 			else
 			{

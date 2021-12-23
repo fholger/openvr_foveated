@@ -344,7 +344,7 @@ namespace vr {
 		float invClusterResolution[2];
 		float invResolution[2];
 		float radius[3];
-		int quality;
+		int debugMode;
 	};
 
 	void PostProcessor::CalculateSavedPixelCount() {
@@ -672,7 +672,7 @@ namespace vr {
 		constants.radius[0] = Config::Instance().innerRadius;
 		constants.radius[1] = Config::Instance().midRadius;
 		constants.radius[2] = Config::Instance().outerRadius;
-		constants.quality = 2;
+		constants.debugMode = Config::Instance().debugMode;
 		if (!textureContainsOnlyOneEye && eye == Eye_Right)
 			constants.projectionCenter[0] += 1.f;
 		D3D11_MAPPED_SUBRESOURCE mapped { nullptr, 0, 0 };
@@ -895,5 +895,12 @@ namespace vr {
 				Log() << "Fixed foveated rendering is now disabled.\n";
 		}
 		wasOnOffTogglePressed = isOnOffTogglePressed;
+
+		static bool wasDebugModeTogglePressed = false;
+		bool isDebugModeTogglePressed = GetAsyncKeyState(VK_F2);
+		if (!wasDebugModeTogglePressed && isDebugModeTogglePressed) {
+			Config::Instance().debugMode = !Config::Instance().debugMode;
+		}
+		wasDebugModeTogglePressed = isDebugModeTogglePressed;
 	}
 }
