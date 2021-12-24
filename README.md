@@ -63,6 +63,15 @@ Available hotkeys:
 
 * <F1> - toggle Fixed Foveated Rendering on or off.
 
+### Building the project
+
+To build the project, you need CMake and Visual Studio. You also need to download the
+[NVAPI SDK](https://developer.nvidia.com/nvapi) (requires NVIDIA developer account)
+and copy the nvapi64.lib to src/nvapi.
+
+Use CMake to generate project files for Visual Studio. Make sure to enable
+`BUILD_SHARED` in the CMake options.
+
 
 OpenVR SDK
 ---

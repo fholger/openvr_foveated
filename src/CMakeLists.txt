@@ -19,6 +19,9 @@ elseif(WIN32)
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_definitions( -DWIN64 )
     #set( LIBNAME "openvr_api64" )
+    set(EXTRA_LIBS ${EXTRA_LIBS} "${CMAKE_CURRENT_SOURCE_DIR}/nvapi/nvapi64.lib")
+  else()
+    set(EXTRA_LIBS ${EXTRA_LIBS} "${CMAKE_CURRENT_SOURCE_DIR}/nvapi/nvapi.lib")
   endif()
 endif()
 
@@ -52,6 +55,8 @@ set(POSTPROCESS_FILES
 	postprocess/VrHooks.cpp
 	postprocess/PostProcessor.h
 	postprocess/PostProcessor.cpp
+	vrs/VariableRateShading.h
+	vrs/VariableRateShading.cpp
 )
 set(NIS_FILES
 	nis/NIS_Config.h
@@ -102,10 +107,6 @@ source_group("VRCommon" FILES
 
 source_group("PostProcess" FILES
 	${POSTPROCESS_FILES}
-)
-
-source_group("FSR" FILES
-	${FSR_FILES}
 )
 
 source_group("NIS" FILES
