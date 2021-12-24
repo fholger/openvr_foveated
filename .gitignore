@@ -1,0 +1,5 @@
+build
+src/nvapi/*.lib
+.vs
+CMakeSettings.json
+
