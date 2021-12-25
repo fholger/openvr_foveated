@@ -17,6 +17,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include "vrs/VariableRateShading.h"
+
 using Microsoft::WRL::ComPtr;
 
 namespace vr {
@@ -187,7 +189,7 @@ namespace vr {
 	}
 
 	void PostProcessor::ApplyFixedFoveatedRendering( ID3D11DepthStencilView *depthStencilView, float depth, uint8_t stencil ) {
-		if (!enabled || depthStencilView == nullptr) {
+		if (!enabled || depthStencilView == nullptr || useVariableRateShading) {
 			return;
 		}
 
@@ -210,6 +212,40 @@ namespace vr {
 		}
 
 		ApplyRadialDensityMask( (ID3D11Texture2D*)resource.Get(), depth, stencil);
+	}
+
+	void PostProcessor::OnRenderTargetChange( UINT numViews, ID3D11RenderTargetView * const *renderTargetViews ) {
+		if (!enabled || numViews == 0 || renderTargetViews[0] == nullptr || !useVariableRateShading) {
+			return;
+		}
+
+		ComPtr<ID3D11Resource> resource;
+		renderTargetViews[0]->GetResource( resource.GetAddressOf() );
+		D3D11_RENDER_TARGET_VIEW_DESC rtd;
+		renderTargetViews[0]->GetDesc( &rtd );
+		if (rtd.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2D) {
+			ID3D11Texture2D *tex = (ID3D11Texture2D*)resource.Get();
+			D3D11_TEXTURE2D_DESC td;
+			tex->GetDesc( &td );
+
+			if (td.Width == td.Height) {
+				// probably the shadow map
+				return;
+			}
+
+			if (textureContainsOnlyOneEye && td.Width >= 2 * textureWidth && td.Height >= textureHeight) {
+				VariableRateShading::Instance().ApplyCombinedVRS( td.Width, td.Height, projX[0], projY[0], projX[1], projY[1] );
+			}
+			else if (!textureContainsOnlyOneEye && td.Width >= textureWidth && td.Height >= textureHeight) {
+				VariableRateShading::Instance().ApplyCombinedVRS( td.Width, td.Height, projX[0], projY[0], projX[1], projY[1] );
+			}
+			else {
+				VariableRateShading::Instance().DisableVRS();
+			}
+		}
+		else {
+			VariableRateShading::Instance().DisableVRS();
+		}
 	}
 
 	void PostProcessor::Reset() {
@@ -788,7 +824,13 @@ namespace vr {
 		if (Config::Instance().ffrEnabled) {
 			DXGI_FORMAT textureFormat = DetermineOutputFormat(std.Format);
 			Log() << "Creating output textures in format " << textureFormat << "\n";
-			PrepareRdmResources(textureFormat);
+
+			VariableRateShading::Instance().Init( device, context );
+			useVariableRateShading = VariableRateShading::Instance().SupportsVariableRateShading() && Config::Instance().preferVrs;
+
+			if (!useVariableRateShading) {
+				PrepareRdmResources(textureFormat);
+			}
 			if (Config::Instance().useSharpening) {
 				PrepareSharpeningResources(textureFormat);
 			}
@@ -838,7 +880,7 @@ namespace vr {
 		uint32_t width = textureWidth * fabsf(bounds->uMax - bounds->uMin);
 		uint32_t height = textureHeight * fabsf(bounds->vMax - bounds->vMin);
 
-		if (Config::Instance().ffrEnabled) {
+		if (Config::Instance().ffrEnabled && !useVariableRateShading) {
 			ReconstructRdmRender( eEye, inputView, offsetX, offsetY, width, height );
 			inputView = rdmReconstructedView.Get();
 			outputTexture = rdmReconstructedTexture.Get();

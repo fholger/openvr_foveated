@@ -89,6 +89,27 @@ namespace {
 			postProcessor.ApplyFixedFoveatedRendering(pDepthStencilView, Depth, Stencil);
 		return ret;
 	}
+
+	void D3D11Context_OMSetRenderTargets(
+			ID3D11DeviceContext *self,
+			UINT NumViews, ID3D11RenderTargetView * const *ppRenderTargetViews,
+			ID3D11DepthStencilView *pDepthStencilView) {
+		CallOriginal(D3D11Context_OMSetRenderTargets)(self, NumViews, ppRenderTargetViews, pDepthStencilView);
+		postProcessor.OnRenderTargetChange( NumViews, ppRenderTargetViews );
+	}
+
+	void D3D11Context_OMSetRenderTargetsAndUnorderedAccessViews(
+			ID3D11DeviceContext *self,
+			UINT NumRTVs,
+			ID3D11RenderTargetView * const *ppRenderTargetViews,
+			ID3D11DepthStencilView *pDepthStencilView,
+			UINT UAVStartSlot,
+			UINT NumUAVs,
+			ID3D11UnorderedAccessView * const *ppUnorderedAccessViews,
+			const UINT *pUAVInitialCounts) {
+		CallOriginal(D3D11Context_OMSetRenderTargetsAndUnorderedAccessViews)(self, NumRTVs, ppRenderTargetViews, pDepthStencilView, UAVStartSlot, NumUAVs, ppUnorderedAccessViews, pUAVInitialCounts);
+		postProcessor.OnRenderTargetChange( NumRTVs, ppRenderTargetViews );
+	}
 }
 
 void InitHooks() {
@@ -159,6 +180,10 @@ void HookD3D11Context( ID3D11DeviceContext *context, ID3D11Device *pDevice ) {
 	if (context != hookedContext) {
 		Log() << "Injecting ClearDepthStencilView into D3D11DeviceContext" << std::endl;
 		InstallVirtualFunctionHook(context, 53, D3D11Context_ClearDepthStencilView);
+		Log() << "Injecting OMSetRenderTargets into D3D11DeviceContext" << std::endl;
+		InstallVirtualFunctionHook(context, 33, D3D11Context_OMSetRenderTargets);
+		Log() << "Injecting OMSetRenderTargetsAndUnorderedAccessViews into D3D11DeviceContext" << std::endl;
+		InstallVirtualFunctionHook(context, 34, D3D11Context_OMSetRenderTargetsAndUnorderedAccessViews);
 		hookedContext = context;
 	}
 }

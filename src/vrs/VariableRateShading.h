@@ -10,17 +10,26 @@ namespace vr {
 
 	class VariableRateShading {
 	public:
-		void Init(ComPtr<ID3D11Device> device);
+		~VariableRateShading() { Reset(); }
+
+		static VariableRateShading& Instance();
+
+		void Init(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context);
 		void Reset();
 
 		bool SupportsVariableRateShading() const { return initialized; }
 
 		void ApplyCombinedVRS(int width, int height, float leftProjX, float leftProjY, float rightProjX, float rightProjY);
+		void DisableVRS();
+
 	private:
+		VariableRateShading() {}
+
 		bool nvapiLoaded = false;
 		bool initialized = false;
 
 		ComPtr<ID3D11Device> device;
+		ComPtr<ID3D11DeviceContext> context;
 		ComPtr<ID3D11Texture2D> singleEyeVRSTex[2];
 		ComPtr<ID3D11NvShadingRateResourceView> singleEyeVRSView[2];
 		int combinedWidth = 0;

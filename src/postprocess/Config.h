@@ -7,6 +7,7 @@ std::string GetDllPath();
 
 struct Config {
 	bool ffrEnabled = false;
+	bool preferVrs = true;
 	float innerRadius = 0.3f;
 	float midRadius = 0.75f;
 	float outerRadius = 0.85f;
@@ -25,6 +26,7 @@ struct Config {
 				configFile >> root;
 				Json::Value foveated = root.get("foveated", Json::Value());
 				config.ffrEnabled = foveated.get("enabled", false).asBool();
+				config.preferVrs = foveated.get("preferVariableRateShading", true).asBool();
 				config.innerRadius = foveated.get("innerRadius", 0.3f).asFloat();
 				config.midRadius = foveated.get("midRadius", 0.75f).asFloat();
 				config.outerRadius = foveated.get("outerRadius", 0.85f).asFloat();

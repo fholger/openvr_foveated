@@ -11,11 +11,13 @@ namespace vr {
 	public:
 		void Apply(EVREye eEye, const Texture_t *pTexture, const VRTextureBounds_t* pBounds, EVRSubmitFlags nSubmitFlags);
 		void ApplyFixedFoveatedRendering(ID3D11DepthStencilView *depthStencilView, float depth, uint8_t stencil);
+		void OnRenderTargetChange(UINT numViews, ID3D11RenderTargetView * const *renderTargetViews);
 		void Reset();
 
 	private:
 		bool enabled = true;
 		bool initialized = false;
+		bool useVariableRateShading = false;
 		uint32_t textureWidth = 0;
 		uint32_t textureHeight = 0;
 		bool textureContainsOnlyOneEye = true;
