@@ -223,25 +223,32 @@ namespace vr {
 		renderTargetViews[0]->GetResource( resource.GetAddressOf() );
 		D3D11_RENDER_TARGET_VIEW_DESC rtd;
 		renderTargetViews[0]->GetDesc( &rtd );
-		if (rtd.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2D) {
-			ID3D11Texture2D *tex = (ID3D11Texture2D*)resource.Get();
-			D3D11_TEXTURE2D_DESC td;
-			tex->GetDesc( &td );
+		if (rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2D && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DARRAY) {
+			VariableRateShading::Instance().DisableVRS();
+			return;
+		}
+		ID3D11Texture2D *tex = (ID3D11Texture2D*)resource.Get();
+		D3D11_TEXTURE2D_DESC td;
+		tex->GetDesc( &td );
 
-			if (td.Width == td.Height) {
-				// probably the shadow map
-				return;
-			}
+		if (td.Width == td.Height) {
+			// probably the shadow map
+			VariableRateShading::Instance().DisableVRS();
+			return;
+		}
 
-			if (textureContainsOnlyOneEye && td.Width >= 2 * textureWidth && td.Height >= textureHeight) {
-				VariableRateShading::Instance().ApplyCombinedVRS( td.Width, td.Height, projX[0], projY[0], projX[1], projY[1] );
-			}
-			else if (!textureContainsOnlyOneEye && td.Width >= textureWidth && td.Height >= textureHeight) {
-				VariableRateShading::Instance().ApplyCombinedVRS( td.Width, td.Height, projX[0], projY[0], projX[1], projY[1] );
-			}
-			else {
-				VariableRateShading::Instance().DisableVRS();
-			}
+		if (textureContainsOnlyOneEye && td.Width >= 2 * textureWidth && td.Height >= textureHeight) {
+			VariableRateShading::Instance().ApplyCombinedVRS( td.Width, td.Height, projX[0], projY[0], projX[1], projY[1] );
+		}
+		else if (!textureContainsOnlyOneEye && td.Width >= textureWidth && td.Height >= textureHeight) {
+			VariableRateShading::Instance().ApplyCombinedVRS( td.Width, td.Height, projX[0], projY[0], projX[1], projY[1] );
+		}
+		else if (textureContainsOnlyOneEye && td.ArraySize == 2 && td.Width >= textureWidth && td.Height >= textureHeight) {
+			VariableRateShading::Instance().ApplyArrayVRS( td.Width, td.Height, projX[0], projY[0], projX[1], projY[1] );
+		}
+		else if (textureContainsOnlyOneEye && td.ArraySize == 1 && td.Width >= textureWidth && td.Height >= textureHeight) {
+			// fixme: how to guess the current eye?
+			VariableRateShading::Instance().DisableVRS();
 		}
 		else {
 			VariableRateShading::Instance().DisableVRS();
@@ -943,5 +950,14 @@ namespace vr {
 			Config::Instance().debugMode = !Config::Instance().debugMode;
 		}
 		wasDebugModeTogglePressed = isDebugModeTogglePressed;
+
+		static bool wasVRSTogglePressed = false;
+		bool isVRSTogglePressed = GetAsyncKeyState(VK_F3);
+		if (!wasVRSTogglePressed && isVRSTogglePressed) {
+			Config::Instance().preferVrs = !Config::Instance().preferVrs;
+			Reset();
+			VariableRateShading::Instance().Reset();
+		}
+		wasVRSTogglePressed = isVRSTogglePressed;
 	}
 }
