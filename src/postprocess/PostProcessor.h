@@ -86,6 +86,10 @@ namespace vr {
 		void ApplyPostProcess(EVREye eEye, ID3D11Texture2D *inputTexture, const VRTextureBounds_t *bounds);
 
 		void CheckHotkeys();
+		bool IsHotkeyActive(int keyCode);
+
+		std::unordered_map<int, bool> wasKeyPressedBefore;
+		bool takeCapture = false;
 
 		struct ProfileQuery {
 			ComPtr<ID3D11Query> queryDisjoint;

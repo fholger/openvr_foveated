@@ -833,7 +833,7 @@ namespace vr {
 			Log() << "Creating output textures in format " << textureFormat << "\n";
 
 			VariableRateShading::Instance().Init( device, context );
-			useVariableRateShading = VariableRateShading::Instance().SupportsVariableRateShading() && Config::Instance().preferVrs;
+			useVariableRateShading = VariableRateShading::Instance().SupportsVariableRateShading() && Config::Instance().useVrs;
 
 			if (!useVariableRateShading) {
 				PrepareRdmResources(textureFormat);
@@ -933,31 +933,49 @@ namespace vr {
 	}
 
 	void PostProcessor::CheckHotkeys() {
-		static bool wasOnOffTogglePressed = false;
-		bool isOnOffTogglePressed = GetAsyncKeyState(VK_F1);
-		if (!wasOnOffTogglePressed && isOnOffTogglePressed) {
+		bool isShiftPressed = GetAsyncKeyState( VK_LSHIFT ) || GetAsyncKeyState( VK_RSHIFT );
+		if (!isShiftPressed && Config::Instance().hotkeysRequireShift)
+			return;
+		bool isCtrlPressed = GetAsyncKeyState( VK_LCONTROL ) || GetAsyncKeyState( VK_RCONTROL );
+		if (!isCtrlPressed && Config::Instance().hotkeysRequireCtrl)
+			return;
+		bool isAltPressed = GetAsyncKeyState( VK_LMENU ) || GetAsyncKeyState( VK_RMENU );
+		if (!isAltPressed && Config::Instance().hotkeysRequireAlt)
+			return;
+
+		if (IsHotkeyActive( Config::Instance().hotkeyToggleFfr )) {
 			enabled = !enabled;
 			if (enabled)
 				Log() << "Fixed foveated rendering is now enabled.\n";
 			else
 				Log() << "Fixed foveated rendering is now disabled.\n";
 		}
-		wasOnOffTogglePressed = isOnOffTogglePressed;
 
-		static bool wasDebugModeTogglePressed = false;
-		bool isDebugModeTogglePressed = GetAsyncKeyState(VK_F2);
-		if (!wasDebugModeTogglePressed && isDebugModeTogglePressed) {
+		if (IsHotkeyActive( Config::Instance().hotkeyToggleDebugMode )) {
 			Config::Instance().debugMode = !Config::Instance().debugMode;
 		}
-		wasDebugModeTogglePressed = isDebugModeTogglePressed;
 
-		static bool wasVRSTogglePressed = false;
-		bool isVRSTogglePressed = GetAsyncKeyState(VK_F3);
-		if (!wasVRSTogglePressed && isVRSTogglePressed) {
-			Config::Instance().preferVrs = !Config::Instance().preferVrs;
+		if (IsHotkeyActive( Config::Instance().hotkeyToggleUseVrs )) {
+			Config::Instance().useVrs = !Config::Instance().useVrs;
 			Reset();
 			VariableRateShading::Instance().Reset();
 		}
-		wasVRSTogglePressed = isVRSTogglePressed;
+
+		if (IsHotkeyActive( Config::Instance().hotkeyDecreaseSharpness )) {
+			Config::Instance().sharpness = max(Config::Instance().sharpness - 0.05f, 0.f);
+			Log() << "Sharpness is now at " << Config::Instance().sharpness << std::endl;
+		}
+
+		if (IsHotkeyActive( Config::Instance().hotkeyIncreaseSharpness )) {
+			Config::Instance().sharpness = min(Config::Instance().sharpness + 0.05f, 1.f);
+			Log() << "Sharpness is now at " << Config::Instance().sharpness << std::endl;
+		}
+	}
+
+	bool PostProcessor::IsHotkeyActive( int keyCode ) {
+		bool isPressedNow = GetAsyncKeyState( keyCode );
+		bool isNewlyPressed = !wasKeyPressedBefore[keyCode] && isPressedNow;
+		wasKeyPressedBefore[keyCode] = isPressedNow;
+		return isNewlyPressed;
 	}
 }
