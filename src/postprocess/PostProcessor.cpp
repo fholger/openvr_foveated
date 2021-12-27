@@ -947,7 +947,9 @@ namespace vr {
 
 		std::wostringstream filename;
 		filename << GetDllPath() << "\\"
-				 << "capture_" << timeBuf
+				 << "capture_" << timeBuf;
+		if (enabled) {
+			filename
 				 << "_" << (useVariableRateShading ? "vrs" : "rdm")
 				 << "_s" << int(roundf(Config::Instance().sharpness * 100))
 				 << "_" << int(roundf(Config::Instance().sharpenRadius * 100))
@@ -955,6 +957,9 @@ namespace vr {
 				 << "_" << int(roundf(Config::Instance().midRadius * 100))
 				 << "_" << int(roundf(Config::Instance().outerRadius * 100))
 				 << ".dds";
+		} else {
+			filename << "_off.dds";
+		}
 
 		HRESULT result = DirectX::SaveDDSTextureToFile( context.Get(), texture, filename.str().c_str() );
 		if (FAILED(result)) {
