@@ -22,6 +22,8 @@
 
 using Microsoft::WRL::ComPtr;
 
+#define LOG_RATE if (frameCount % 200 == 0) Log()
+
 namespace vr {
 	void CheckResult(const std::string &operation, HRESULT result) {
 		if (FAILED(result)) {
@@ -175,14 +177,12 @@ namespace vr {
 				}
 			}
 
-			// if a single shared texture is used for both eyes, only apply effects on the first Submit
-			if (true || eyeCount == 0 || textureContainsOnlyOneEye || texture != lastSubmittedTexture) {
-				ApplyPostProcess(eEye, texture, pBounds);
-			}
+			ApplyPostProcess(eEye, texture, pBounds);
 			lastSubmittedTexture = texture;
 			eyeCount = (eyeCount + 1) % 2;
 			if (eyeCount == 0) {
 				depthClearCount = 0;
+				++frameCount;
 			}
 			const_cast<Texture_t*>(pTexture)->handle = outputTexture;
 			const_cast<Texture_t*>(pTexture)->eColorSpace = inputIsSrgb ? ColorSpace_Gamma : ColorSpace_Auto;
@@ -217,6 +217,7 @@ namespace vr {
 
 	void PostProcessor::OnRenderTargetChange( UINT numViews, ID3D11RenderTargetView * const *renderTargetViews ) {
 		if (!enabled || numViews == 0 || renderTargetViews[0] == nullptr || !useVariableRateShading) {
+			VariableRateShading::Instance().DisableVRS();
 			return;
 		}
 
@@ -224,7 +225,8 @@ namespace vr {
 		renderTargetViews[0]->GetResource( resource.GetAddressOf() );
 		D3D11_RENDER_TARGET_VIEW_DESC rtd;
 		renderTargetViews[0]->GetDesc( &rtd );
-		if (rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2D && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DARRAY) {
+		if (rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2D && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DARRAY
+				&& rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMS && rtd.ViewDimension != D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY) {
 			VariableRateShading::Instance().DisableVRS();
 			return;
 		}

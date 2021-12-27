@@ -81,6 +81,7 @@ namespace vr {
 		ID3D11Texture2D *lastSubmittedTexture = nullptr;
 		ID3D11Texture2D *outputTexture = nullptr;
 		int eyeCount = 0;
+		int frameCount = 0;
 
 		void PrepareResources(ID3D11Texture2D *inputTexture, EColorSpace colorSpace);
 		void ApplyPostProcess(EVREye eEye, ID3D11Texture2D *inputTexture, const VRTextureBounds_t *bounds);

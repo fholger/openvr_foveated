@@ -179,7 +179,7 @@ namespace vr {
 		NV_D3D11_VIEWPORT_SHADING_RATE_DESC vsrd[2];
 		for (int i = 0; i < 2; ++i) {
 			vsrd[i].enableVariablePixelShadingRate = true;
-			memset(vsrd[i].shadingRateTable, 0, sizeof(vsrd[i].shadingRateTable));
+			memset(vsrd[i].shadingRateTable, 5, sizeof(vsrd[i].shadingRateTable));
 			vsrd[i].shadingRateTable[0] = NV_PIXEL_X1_PER_RASTER_PIXEL;
 			vsrd[i].shadingRateTable[1] = NV_PIXEL_X1_PER_1X2_RASTER_PIXELS;
 			vsrd[i].shadingRateTable[2] = NV_PIXEL_X1_PER_2X2_RASTER_PIXELS;
@@ -335,10 +335,10 @@ namespace vr {
 
 		// array rendering is most likely a new Unity engine game, which for some reason renders upside down.
 		// so we invert the y projection center coordinate to match the upside down render.
-		auto data = CreateSingleEyeFixedFoveatedVRSPattern( width, height, leftProjX, 1.f - leftProjY );
-		context->UpdateSubresource( arrayVRSTex.Get(), D3D11CalcSubresource( 0, 0, 1 ), nullptr, data.data(), vrsWidth, vrsWidth * vrsHeight );
-		data = CreateSingleEyeFixedFoveatedVRSPattern( width, height, rightProjX, 1.f - rightProjY );
-		context->UpdateSubresource( arrayVRSTex.Get(), D3D11CalcSubresource( 0, 1, 1 ), nullptr, data.data(), vrsWidth, vrsWidth * vrsHeight );
+		auto data = CreateSingleEyeFixedFoveatedVRSPattern( vrsWidth, vrsHeight, leftProjX, 1.f - leftProjY );
+		context->UpdateSubresource( arrayVRSTex.Get(), D3D11CalcSubresource( 0, 0, 1 ), nullptr, data.data(), vrsWidth, 0 );
+		data = CreateSingleEyeFixedFoveatedVRSPattern( vrsWidth, vrsHeight, rightProjX, 1.f - rightProjY );
+		context->UpdateSubresource( arrayVRSTex.Get(), D3D11CalcSubresource( 0, 1, 1 ), nullptr, data.data(), vrsWidth, 0 );
 
 		Log() << "Creating array shading rate resource view" << std::endl;
 		NV_D3D11_SHADING_RATE_RESOURCE_VIEW_DESC vd = {};
