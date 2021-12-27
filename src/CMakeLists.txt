@@ -55,6 +55,8 @@ set(POSTPROCESS_FILES
 	postprocess/VrHooks.cpp
 	postprocess/PostProcessor.h
 	postprocess/PostProcessor.cpp
+	postprocess/ScreenGrab11.h
+	postprocess/ScreenGrab11.cpp
 	vrs/VariableRateShading.h
 	vrs/VariableRateShading.cpp
 )

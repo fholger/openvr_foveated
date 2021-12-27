@@ -84,10 +84,12 @@ namespace vr {
 
 		void PrepareResources(ID3D11Texture2D *inputTexture, EColorSpace colorSpace);
 		void ApplyPostProcess(EVREye eEye, ID3D11Texture2D *inputTexture, const VRTextureBounds_t *bounds);
+		void SaveTextureToFile(ID3D11Texture2D *texture);
 
 		void CheckHotkeys();
 		bool IsHotkeyActive(int keyCode);
 
+		int selectedRadius = 0;
 		std::unordered_map<int, bool> wasKeyPressedBefore;
 		bool takeCapture = false;
 

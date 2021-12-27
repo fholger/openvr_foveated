@@ -17,6 +17,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include "ScreenGrab11.h"
 #include "vrs/VariableRateShading.h"
 
 using Microsoft::WRL::ComPtr;
@@ -930,6 +931,33 @@ namespace vr {
 				}
 			}
 		}
+
+		if (takeCapture && eEye == Eye_Left) {
+			SaveTextureToFile( outputTexture );
+			takeCapture = false;
+		}
+	}
+
+	void PostProcessor::SaveTextureToFile( ID3D11Texture2D *texture ) {
+		static char timeBuf[16];
+		std::time_t now = std::time(nullptr);
+		std::strftime(timeBuf, sizeof(timeBuf), "%Y%m%d_%H%M%S", std::localtime(&now));
+
+		std::wostringstream filename;
+		filename << GetDllPath() << "\\"
+				 << "capture_" << timeBuf
+				 << "_" << (useVariableRateShading ? "vrs" : "rdm")
+				 << "_s" << int(roundf(Config::Instance().sharpness * 100))
+				 << "_" << int(roundf(Config::Instance().sharpenRadius * 100))
+				 << "_r" << int(roundf(Config::Instance().innerRadius * 100))
+				 << "_" << int(roundf(Config::Instance().midRadius * 100))
+				 << "_" << int(roundf(Config::Instance().outerRadius * 100))
+				 << ".dds";
+
+		HRESULT result = DirectX::SaveDDSTextureToFile( context.Get(), texture, filename.str().c_str() );
+		if (FAILED(result)) {
+			Log() << "Error taking screen capture: " << std::hex << result << std::dec << std::endl;
+		}
 	}
 
 	void PostProcessor::CheckHotkeys() {
@@ -945,6 +973,7 @@ namespace vr {
 
 		if (IsHotkeyActive( Config::Instance().hotkeyToggleFfr )) {
 			enabled = !enabled;
+			VariableRateShading::Instance().DisableVRS();
 			if (enabled)
 				Log() << "Fixed foveated rendering is now enabled.\n";
 			else
@@ -957,6 +986,7 @@ namespace vr {
 
 		if (IsHotkeyActive( Config::Instance().hotkeyToggleUseVrs )) {
 			Config::Instance().useVrs = !Config::Instance().useVrs;
+			VariableRateShading::Instance().DisableVRS();
 			Reset();
 			VariableRateShading::Instance().Reset();
 		}
@@ -969,6 +999,68 @@ namespace vr {
 		if (IsHotkeyActive( Config::Instance().hotkeyIncreaseSharpness )) {
 			Config::Instance().sharpness = min(Config::Instance().sharpness + 0.05f, 1.f);
 			Log() << "Sharpness is now at " << Config::Instance().sharpness << std::endl;
+		}
+
+		if (IsHotkeyActive( Config::Instance().hotkeyDecreaseRadius )) {
+			switch (selectedRadius) {
+			case 0:
+				Config::Instance().innerRadius = max(Config::Instance().innerRadius - 0.05f, 0.f);
+				Log() << "Inner FFR radius is now at " << Config::Instance().innerRadius << std::endl;
+				break;
+			case 1:
+				Config::Instance().midRadius = max(Config::Instance().midRadius - 0.05f, 0.f);
+				Log() << "Mid FFR radius is now at " << Config::Instance().midRadius << std::endl;
+				break;
+			case 2:
+				Config::Instance().outerRadius = max(Config::Instance().outerRadius - 0.05f, 0.f);
+				Log() << "Outer FFR radius is now at " << Config::Instance().outerRadius << std::endl;
+				break;
+			case 3:
+				Config::Instance().sharpenRadius = max(Config::Instance().sharpenRadius - 0.05f, 0.f);
+				Log() << "Sharpening radius is now at " << Config::Instance().sharpenRadius << std::endl;
+				break;
+			}
+		}
+
+		if (IsHotkeyActive( Config::Instance().hotkeyIncreaseRadius )) {
+			switch (selectedRadius) {
+			case 0:
+				Config::Instance().innerRadius += 0.05f;
+				Log() << "Inner FFR radius is now at " << Config::Instance().innerRadius << std::endl;
+				break;
+			case 1:
+				Config::Instance().midRadius += 0.05f;
+				Log() << "Mid FFR radius is now at " << Config::Instance().midRadius << std::endl;
+				break;
+			case 2:
+				Config::Instance().outerRadius += 0.05f;
+				Log() << "Outer FFR radius is now at " << Config::Instance().outerRadius << std::endl;
+				break;
+			case 3:
+				Config::Instance().sharpenRadius += 0.05f;
+				Log() << "Sharpening radius is now at " << Config::Instance().sharpenRadius << std::endl;
+				break;
+			}
+		}
+
+		if (IsHotkeyActive( Config::Instance().hotkeySelectInnerRadius )) {
+			selectedRadius = 0;
+		}
+
+		if (IsHotkeyActive( Config::Instance().hotkeySelectMidRadius )) {
+			selectedRadius = 1;
+		}
+
+		if (IsHotkeyActive( Config::Instance().hotkeySelectOuterRadius )) {
+			selectedRadius = 2;
+		}
+
+		if (IsHotkeyActive( Config::Instance().hotkeySelectSharpenRadius )) {
+			selectedRadius = 3;
+		}
+
+		if (IsHotkeyActive( Config::Instance().hotkeyCaptureOutput )) {
+			takeCapture = true;
 		}
 	}
 

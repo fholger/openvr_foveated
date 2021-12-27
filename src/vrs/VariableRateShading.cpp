@@ -156,6 +156,9 @@ namespace vr {
 	}
 
 	void VariableRateShading::DisableVRS() {
+		if (!initialized)
+			return;
+
 		NV_D3D11_VIEWPORT_SHADING_RATE_DESC vsrd[2];
 		vsrd[0].enableVariablePixelShadingRate = false;
 		vsrd[1].enableVariablePixelShadingRate = false;

@@ -4,7 +4,7 @@
 #include "json/json.h"
 
 std::ostream& Log();
-std::string GetDllPath();
+std::wstring GetDllPath();
 
 struct Config {
 	bool ffrEnabled = false;
@@ -36,7 +36,7 @@ struct Config {
 	static Config Load() {
 		Config config;
 		try {
-			std::ifstream configFile (GetDllPath() + "\\openvr_mod.cfg");
+			std::ifstream configFile (GetDllPath() + L"\\openvr_mod.cfg");
 			if (configFile.is_open()) {
 				Json::Value root;
 				configFile >> root;
